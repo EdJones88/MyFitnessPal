@@ -1,0 +1,717 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr 22 13:45:31 2020
+
+@author: Ed
+"""
+
+
+
+import pandas as pd
+import numpy as np
+from datetime import date
+import datetime as dt
+import zipfile
+
+directory_mfp = 'C:/Users/edwar/Downloads/MyFitnessPal_Download'
+
+today_date = date.today()
+month_today = today_date.month
+year_today = str(today_date.year)
+day_today = today_date.day
+
+#print(today_date)
+#print(month_today)
+#print(year_today)
+#print(day_today)
+
+if month_today < 10:
+    month_today_zeropad = '0' + str(month_today)
+else:
+    month_today_zeropad = str(month_today)
+    
+if day_today < 10:
+    day_today_zeropad = '0' + str(day_today)
+else:
+    day_today_zeropad = str(day_today)
+    
+#print(month_today_zeropad)
+
+
+with zipfile.ZipFile(directory_mfp + "/File-Export-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".zip", 'r') as zip_ref:
+    zip_ref.extractall(directory_mfp)
+    
+Measurements = pd.read_csv(directory_mfp + "/Measurement-Summary-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".csv")
+
+Measurements = Measurements.dropna(subset=['Weight'])
+
+Measurements = Measurements[['Date','Weight']]
+
+
+one_year_ago =  date.today() - dt.timedelta(days=365)
+today_date = date.today()
+#print(one_year_ago)
+
+Dates = pd.DataFrame(columns=['Date_'])
+for i in range(366):
+    Dates = Dates.append({'Date_': dt.timedelta(days=i) + one_year_ago}, ignore_index = True)
+
+#print(Dates.info())
+
+
+#print(Measurements.info())
+
+Dates.Date_ = Dates.Date_.astype(str)
+Measurements = Measurements.astype(str)
+
+Measurements_all = Dates.merge(Measurements,how='left', left_on= ['Date_'], right_on = ['Date'])
+
+#print(Measurements_all)
+
+Measurements_all['Weight'].fillna(method='ffill', inplace=True)
+
+
+
+Measurements_all = Measurements_all[['Date_','Weight']]
+
+Measurements_all = Measurements_all.dropna(subset=['Weight'])
+
+#print(Measurements_all)
+
+Measurements_all.to_csv(directory_mfp + "/Measurement_revised.txt", index = False)
+
+Exercise = pd.read_csv(directory_mfp + "/Exercise-Summary-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".csv")
+
+Exercise_Calories = Exercise[['Date','Exercise Calories', 'Exercise Minutes']]
+
+Exercise_Calories = Exercise_Calories.dropna(subset=['Exercise Calories'])
+Exercise_Calories = Exercise_Calories.dropna(subset=['Exercise Minutes'])
+
+
+Total_Exercise_Calories = Exercise_Calories.groupby(['Date']).sum()
+
+Total_Exercise_Calories_OneYear = Dates.merge(Total_Exercise_Calories,how='left', left_on= ['Date_'], right_on = ['Date'])
+
+Total_Exercise_Calories_OneYear.to_csv(directory_mfp + "/Total_Exercise_Calories_OneYear.txt", index = False)
+Total_Exercise_Calories_OneYear_ForComparison = Total_Exercise_Calories_OneYear
+
+Nutrition = pd.read_csv(directory_mfp + "/Nutrition-Summary-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".csv")
+
+Nutrition.to_csv(directory_mfp + "/Nutrition.txt", index = False)
+
+Nutrition = pd.read_csv(directory_mfp + "/Nutrition.txt")
+
+#print(Nutrition)
+
+#print(Nutrition.iloc[ : , [0, 1, 2, 5]])
+
+#pd.DataFrame.head
+
+Nutrition_header = Nutrition.head(0)
+
+#print(Nutrition_header)
+
+header_name = Nutrition_header.iloc[:,5]
+
+
+#list_of_columns = list(Nutrition.columns.values.tolist())
+#
+#print(list_of_columns)
+#
+#print(list_of_columns.loc[1])
+#
+#list.
+
+
+#for i in Nutrition.columns:
+#
+#   NutritionOutput = Nutrition[['Date','Meal',]]
+#   
+#print(NutritionOutput)
+#    
+
+NutritionOutput = Nutrition[['Date','Meal', 'Time', 'Calories']]
+NutritionOutput = NutritionOutput.rename(columns={'Calories': 'Value'})
+
+NutritionOutput['Type_Of_Data'] = 'Calories'
+
+#print(NutritionOutput)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Fat (g)']]
+Nutrition_2 = Nutrition_2.rename(columns={'Fat (g)' : 'Value'})
+
+Nutrition_2['Type_Of_Data'] = 'Fat (g)'
+
+
+
+
+
+#Nutrition_2 = Nutrition_2.rename(columns={"Fat (g)": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+#print(NutritionOutput)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Saturated Fat']]
+
+Nutrition_2['Type_Of_Data'] = 'Saturated Fat'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Saturated Fat": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Monounsaturated Fat']]
+
+Nutrition_2['Type_Of_Data'] = 'Monounsaturated Fat'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Monounsaturated Fat": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Trans Fat']]
+
+Nutrition_2['Type_Of_Data'] = 'Trans Fat'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Trans Fat": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Cholesterol']]
+
+Nutrition_2['Type_Of_Data'] = 'Cholesterol'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Cholesterol": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Sodium (mg)']]
+
+Nutrition_2['Type_Of_Data'] = 'Sodium (mg)'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Sodium (mg)": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Potassium']]
+
+Nutrition_2['Type_Of_Data'] = 'Potassium'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Potassium": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Carbohydrates (g)']]
+
+Nutrition_2['Type_Of_Data'] = 'Carbohydrates (g)'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Carbohydrates (g)": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Fiber']]
+
+Nutrition_2['Type_Of_Data'] = 'Fiber'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Fiber": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Sugar']]
+
+Nutrition_2['Type_Of_Data'] = 'Sugar'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Sugar": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Protein (g)']]
+
+Nutrition_2['Type_Of_Data'] = 'Protein (g)'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Protein (g)": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Vitamin A']]
+
+Nutrition_2['Type_Of_Data'] = 'Vitamin A'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Vitamin A": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Vitamin C']]
+
+Nutrition_2['Type_Of_Data'] = 'Vitamin C'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Vitamin C": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Calcium']]
+
+Nutrition_2['Type_Of_Data'] = 'Calcium'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Calcium": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+Nutrition_2 = Nutrition.loc[:, ['Date','Meal', 'Time', 'Iron']]
+
+Nutrition_2['Type_Of_Data'] = 'Iron'
+
+Nutrition_2 = Nutrition_2.rename(columns={"Iron": "Value"})
+
+#print(Nutrition_2)
+
+NutritionOutput = NutritionOutput.append(Nutrition_2)
+
+NutritionOutput = NutritionOutput[['Date','Meal','Time','Value','Type_Of_Data']]
+
+#print(NutritionOutput)
+
+NutritionOutput.to_csv(directory_mfp + "/NutritionOutput.txt", index = False)
+
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Apr 17 13:35:51 2020
+
+@author: Ed
+"""
+
+import pandas as pd
+import numpy as np
+from datetime import date
+import datetime as dt
+import zipfile
+
+directory_mfp = 'C:/Users/edwar/Downloads/MyFitnessPal_Download'
+
+today_date = date.today()
+month_today = today_date.month
+year_today = str(today_date.year)
+day_today = str(today_date.day)
+
+#print(today_date)
+#print(month_today)
+#print(year_today)
+#print(day_today)
+
+if month_today < 10:
+    month_today_zeropad = '0' + str(month_today)
+else:
+    month_today_zeropad = str(month_today)
+    
+#print(month_today_zeropad)
+
+
+with zipfile.ZipFile(directory_mfp + "/File-Export-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".zip", 'r') as zip_ref:
+    zip_ref.extractall(directory_mfp)
+    
+three_weeks_ago =  date.today() - dt.timedelta(days=20)
+today_date = date.today()
+#print(three_weeks_ago)
+
+Dates = pd.DataFrame(columns=['Date_'])
+for i in range(366):
+    Dates = Dates.append({'Date_': dt.timedelta(days=i) + three_weeks_ago}, ignore_index = True)
+
+#print(Dates.info())
+
+Dates.Date_ = Dates.Date_.astype(str)
+
+Exercise = pd.read_csv(directory_mfp + "/Exercise-Summary-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".csv")
+
+Exercise_Calories = Exercise[['Date','Exercise Calories','Exercise Minutes']]
+
+Exercise_Calories = Exercise_Calories.dropna(subset=['Exercise Calories'])
+Exercise_Calories = Exercise_Calories.dropna(subset=['Exercise Minutes'])
+
+Total_Exercise_Calories = Exercise_Calories.groupby(['Date']).sum()
+
+Total_Exercise_Calories_OneYear = Dates.merge(Total_Exercise_Calories,how='left', left_on= ['Date_'], right_on = ['Date'])
+
+#print(Total_Exercise_Calories_OneYear)
+
+#Total_Exercise_Calories_OneYear_Max = Total_Exercise_Calories_OneYear[['Exercise Calories']].max()
+
+Total_Exercise_Calories_OneYear_Max_Row = Total_Exercise_Calories_OneYear.iloc[Total_Exercise_Calories_OneYear['Exercise Calories'].idxmax()]
+
+
+#pd.DataFrame.max()
+#print("Total_Exercise_Calories_OneYear_Max")
+#print(Total_Exercise_Calories_OneYear_Max_Row)
+
+#print("Total_Exercise_Calories_OneYear_Max_Row")
+
+#Total_Exercise_Calories_OneYear_Max_Row_T = Total_Exercise_Calories_OneYear_Max_Row.transpose()
+#
+#print(Total_Exercise_Calories_OneYear_Max_Row_T)
+#
+#print(Total_Exercise_Calories_OneYear)
+#
+Total_Exercise_Calories_OneYear_Max_Row_Frame = Total_Exercise_Calories_OneYear_Max_Row.to_frame()
+Total_Exercise_Calories_OneYear_Max_Row_Frame_T = Total_Exercise_Calories_OneYear_Max_Row_Frame.transpose()
+#print(Total_Exercise_Calories_OneYear_Max_Row_Frame_T)
+#
+Total_Exercise_Calories_OneYear_Max_Row_Frame_T['Type'] = 'Most Calories Burned' 
+#print(Total_Exercise_Calories_OneYear_Max_Row_Frame_T)
+
+
+####### Minutes
+
+Total_Exercise_Minutes_OneYear_Max_Row = Total_Exercise_Calories_OneYear.iloc[Total_Exercise_Calories_OneYear['Exercise Minutes'].idxmax()]
+
+
+#pd.DataFrame.max()
+#print("Total_Exercise_Minutes_OneYear_Max")
+#print(Total_Exercise_Minutes_OneYear_Max_Row)
+
+
+#
+Total_Exercise_Minutes_OneYear_Max_Row_Frame = Total_Exercise_Minutes_OneYear_Max_Row.to_frame()
+Total_Exercise_Minutes_OneYear_Max_Row_Frame_T = Total_Exercise_Minutes_OneYear_Max_Row_Frame.transpose()
+#print(Total_Exercise_Minutes_OneYear_Max_Row_Frame_T)
+#
+Total_Exercise_Minutes_OneYear_Max_Row_Frame_T['Type'] = 'Most Minutes Exercised' 
+#print(Total_Exercise_Minutes_OneYear_Max_Row_Frame_T)
+
+Total_Exercise_Minutes_OneYear_Max_Row_Frame_Appended = Total_Exercise_Minutes_OneYear_Max_Row_Frame_T.append(Total_Exercise_Calories_OneYear_Max_Row_Frame_T)
+
+#print(Total_Exercise_Minutes_OneYear_Max_Row_Frame_Appended)
+
+Total_Exercise_Minutes_OneYear_Max_Row_Frame_Appended.to_csv(directory_mfp + "/MaxCalories_Minutes_PerDay.txt", index = False)
+
+one_month_ago =  date.today() - dt.timedelta(days=30)
+today_date = date.today()
+#print(one_month_ago)
+
+Dates = pd.DataFrame(columns=['Date_'])
+for i in range(31):
+    Dates = Dates.append({'Date_': dt.timedelta(days=i) + one_month_ago}, ignore_index = True)
+
+#print(Dates.info())
+
+Dates.Date_ = Dates.Date_.astype(str)
+
+
+Measurements = pd.read_csv(directory_mfp + "/Measurement-Summary-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".csv")
+
+Measurements = Measurements.dropna(subset=['Weight'])
+
+Measurements = Measurements[['Date','Weight']]
+
+
+#print(Dates.info())
+
+
+#print(Measurements.info())
+
+Dates.Date_ = Dates.Date_.astype(str)
+Measurements = Measurements.astype(str)
+
+Measurements_all = Dates.merge(Measurements,how='left', left_on= ['Date_'], right_on = ['Date'])
+
+#print(Measurements_all)
+
+Measurements_all['Weight'].fillna(method='ffill', inplace=True)
+
+#print(Measurements_all)
+
+
+Measurements_all = Measurements_all[['Date_','Weight']]
+
+Measurements_all = Measurements_all.dropna(subset=['Weight'])
+
+#print(Measurements_all)
+#Measurements_start_old = Measurements_all.head(1)
+#print(Measurements_start_old)
+#Measurements_start_1 = Measurements_all.loc[0,:]
+#Measurements_start_frame = Measurements_start_1.to_frame()
+#Measurements_start = Measurements_start_frame.transpose()
+#
+#print(Measurements_start)
+
+Measurements_start = Measurements_all.loc[[0],:]
+#print(Measurements_start)
+Measurements_start['Category'] = 'Start of Month (lb)' 
+
+
+Measurements_last = Measurements_all.iloc[[-1]]
+
+
+#print(Measurements_last)
+
+
+
+Measurements_last = Measurements_last[['Date_','Weight']]
+
+
+Measurements_last['Category'] = 'End of Month (lb)' 
+
+Measurements_First_Last = Measurements_start.append(Measurements_last)
+#print(Measurements_First_Last)
+
+#Measurements_First_Last.to_csv(directory_mfp + "/Measurements_First_Last.txt", index = False)
+
+one_month_ago =  date.today() - dt.timedelta(days=30)
+today_date = date.today()
+#print(one_month_ago)
+
+Dates = pd.DataFrame(columns=['Date_'])
+for i in range(31):
+    Dates = Dates.append({'Date_': dt.timedelta(days=i) + one_month_ago}, ignore_index = True)
+
+#print(Dates.info())
+
+Dates.Date_ = Dates.Date_.astype(str)
+
+
+Measurements = pd.read_csv(directory_mfp + "/Measurement-Summary-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".csv")
+
+Measurements = Measurements.dropna(subset=['Weight'])
+
+Measurements = Measurements[['Date','Weight']]
+
+
+#print(Dates.info())
+
+
+#print(Measurements.info())
+
+Dates.Date_ = Dates.Date_.astype(str)
+Measurements = Measurements.astype(str)
+
+Measurements_all = Dates.merge(Measurements,how='left', left_on= ['Date_'], right_on = ['Date'])
+
+#print(Measurements_all)
+
+Measurements_all['Weight'].fillna(method='ffill', inplace=True)
+
+#print(Measurements_all)
+
+
+Measurements_all = Measurements_all[['Date_','Weight']]
+
+Measurements_all = Measurements_all.dropna(subset=['Weight'])
+
+#print(Measurements_all)
+Measurements_start = Measurements_all.loc[[0],:]
+#print(Measurements_start)
+Measurements_start['Category'] = 'Start of Month (lb)' 
+Measurements_start['Join'] = 'Join' 
+
+Measurements_last = Measurements_all.iloc[[-1]]
+Measurements_last = Measurements_last[['Date_','Weight']]
+
+#print(Measurements_last)
+Measurements_last['Category'] = 'End of Month (lb)' 
+Measurements_last['Join'] = 'Join' 
+
+Measurements_merged_sl = Measurements_start.merge(Measurements_last, how = 'inner', left_on='Join', right_on='Join')
+#Measurements_merged_sl['Weight_x'].astype('float64')
+#Measurements_merged_sl['Weight_y'].astype('float64')
+
+#Measurements_merged_sl = Measurements_merged_sl.convert_objects(convert_numeric=True)
+
+
+
+#print(Measurements_merged_sl.info())
+#data['S1Q2I'] = pd.to_numeric(data['S1Q2I'])
+Measurements_merged_sl['Weight_x'] = pd.to_numeric(Measurements_merged_sl['Weight_x'])
+Measurements_merged_sl['Weight_y'] = pd.to_numeric(Measurements_merged_sl['Weight_y'])
+
+
+#print(Measurements_merged_sl.info())
+
+#pd.to_numeric(s, downcast='float')
+
+
+Measurements_merged_sl['Date_'] = Measurements_merged_sl['Date__x']
+Measurements_merged_sl['Weight'] = round(Measurements_merged_sl['Weight_y'] - Measurements_merged_sl['Weight_x'],1)
+#
+#print(Measurements_merged_sl)
+Measurements_merged_sl = Measurements_merged_sl[['Date_','Weight']]
+Measurements_merged_sl['Category'] = 'Change in Month' 
+Measurements_merged_sl['Join'] = 'Join' 
+
+Measurements_merged_appended = Measurements_merged_sl.append(Measurements_start)
+Measurements_merged_appended = Measurements_merged_appended.append(Measurements_last)
+
+
+#print(Measurements_merged_appended)
+Measurements_merged_appended.to_csv(directory_mfp + "/Measurements_First_Last.txt", index = False)
+
+Measurements_bf = pd.read_csv(directory_mfp + "/Measurement-Summary-2012-01-30-to-" + year_today + "-" + month_today_zeropad + "-" + day_today_zeropad + ".csv")
+
+Measurements_bf = Measurements_bf.dropna(subset=['Fitbit body fat %'])
+
+Measurements_bf = Measurements_bf[['Date','Fitbit body fat %']]
+
+
+one_month_ago_bf =  date.today() - dt.timedelta(days=30)
+today_date = date.today()
+#print(one_month_ago_bf)
+
+Dates_thirty = pd.DataFrame(columns=['Date_'])
+for i in range(31):
+    Dates_thirty = Dates_thirty.append({'Date_': dt.timedelta(days=i) + one_month_ago_bf}, ignore_index = True)
+
+#print(Dates_thirty.info())
+
+
+#print(Measurements_bf.info())
+
+Dates_thirty.Date_ = Dates_thirty.Date_.astype(str)
+Measurements_bf = Measurements_bf.astype(str)
+
+Measurements_bf_all = Dates_thirty.merge(Measurements_bf,how='left', left_on= ['Date_'], right_on = ['Date'])
+
+#print(Measurements_bf_all)
+
+Measurements_bf_all['Fitbit body fat %'].fillna(method='ffill', inplace=True)
+
+
+
+Measurements_bf_all = Measurements_bf_all[['Date_','Fitbit body fat %']]
+
+Measurements_bf_all = Measurements_bf_all.dropna(subset=['Fitbit body fat %'])
+
+#print(Measurements_bf_all)
+
+Measurements_bf_all.to_csv(directory_mfp + "/Measurements_bf_all.txt", index = False)
+#################
+
+
+#print(Measurements_bf_all)
+
+Measurements_start_bf = Measurements_bf_all.iloc[[0],:]
+#print(Measurements_start_bf)
+Measurements_start_bf = Measurements_start_bf[['Date_','Fitbit body fat %']]
+#print(Measurements_start_bf)
+Measurements_start_bf['Category'] = 'Start of Month (% body fat)' 
+Measurements_start_bf['Join'] = 'Join' 
+
+Measurements_last_bf = Measurements_bf_all.iloc[[-1]]
+Measurements_last_bf = Measurements_last_bf[['Date_','Fitbit body fat %']]
+
+
+#print(Measurements_last_bf)
+Measurements_last_bf['Category'] = 'End of Month (% body fat)' 
+Measurements_last_bf['Join'] = 'Join' 
+
+
+
+Measurements_merged_sl = Measurements_start_bf.merge(Measurements_last_bf, how = 'inner', left_on='Join', right_on='Join')
+#Measurements_merged_sl['_x'].astype('float64')
+#Measurements_merged_sl['%_y'].astype('float64')
+
+Measurements_merged_sl['Fitbit body fat %_x'] = pd.to_numeric(Measurements_merged_sl['Fitbit body fat %_x'])
+Measurements_merged_sl['Fitbit body fat %_y'] = pd.to_numeric(Measurements_merged_sl['Fitbit body fat %_y'])
+
+#Measurements_merged_sl = Measurements_merged_sl.convert_objects(convert_numeric=True)
+
+#print(Measurements_merged_sl.info())
+
+#pd.to_numeric(s, downcast='float')
+
+
+Measurements_merged_sl['Date_'] = Measurements_merged_sl['Date__x']
+Measurements_merged_sl['Fitbit body fat %'] = round(Measurements_merged_sl['Fitbit body fat %_y'] - Measurements_merged_sl['Fitbit body fat %_x'],1)
+#
+#print(Measurements_merged_sl)
+Measurements_merged_sl = Measurements_merged_sl[['Date_','Fitbit body fat %']]
+Measurements_merged_sl['Category'] = 'Change in Month' 
+Measurements_merged_sl['Join'] = 'Join' 
+
+Measurements_merged_appended = Measurements_merged_sl.append(Measurements_start_bf)
+Measurements_merged_appended = Measurements_merged_appended.append(Measurements_last_bf)
+
+
+#print(Measurements_merged_appended)
+Measurements_merged_appended.to_csv(directory_mfp + "/Measurements_First_Last_BodyFat.txt", index = False)
+
+#print (Total_Exercise_Calories_OneYear.info())
+#print(Total_Exercise_Calories_OneYear)
+#print(Total_Exercise_Calories_OneYear_ForComparison)
+
+Total_Exercise_Calories_OneYear_ForComparison['Date_'] = Total_Exercise_Calories_OneYear_ForComparison['Date_'].astype('datetime64[ns]')
+
+#Total_Exercise_Calories_OneYear_ForComparison['Date_'] = pd.Timestamp(Total_Exercise_Calories_OneYear_ForComparison['Date_'])
+
+#print (Total_Exercise_Calories_OneYear_ForComparison.info())
+#print(Total_Exercise_Calories_OneYear_ForComparison)
+#pd.DataFrame.filter()
+#Total_Exercise_Minutes_PriorMonth = Total_Exercise_Calories_OneYear_ForComparison.filter()
+
+
+
+today = pd.Timestamp(date.today())
+start_date = pd.Timestamp(date.today()) - dt.timedelta(days=61)
+end_date = pd.Timestamp(date.today()) - dt.timedelta(days=31)
+
+
+
+#print(today)
+#print(start_date)
+#print(end_date)
+
+prior_month = (Total_Exercise_Calories_OneYear_ForComparison['Date_'] > start_date) & (Total_Exercise_Calories_OneYear_ForComparison['Date_'] <= end_date)
+current_month = (Total_Exercise_Calories_OneYear_ForComparison['Date_'] > end_date) & (Total_Exercise_Calories_OneYear_ForComparison['Date_'] < today)
+
+Total_Exercise_Minutes_PriorMonth = Total_Exercise_Calories_OneYear_ForComparison.loc[prior_month]
+Total_Exercise_Minutes_CurrentMonth = Total_Exercise_Calories_OneYear_ForComparison.loc[current_month]
+
+#print(Total_Exercise_Minutes_PriorMonth)
+#print(Total_Exercise_Minutes_CurrentMonth)
+
+#pd.DataFrame.sum()
+
+Total_Exercise_Minutes_CurrentMonth_Total_Minutes = Total_Exercise_Minutes_CurrentMonth['Exercise Minutes'].sum()
+Total_Exercise_Minutes_PriorMonth_Total_Minutes = Total_Exercise_Minutes_PriorMonth['Exercise Minutes'].sum()
+More_Minutes_Exercised_CurrentMonth = round(Total_Exercise_Minutes_CurrentMonth_Total_Minutes - Total_Exercise_Minutes_PriorMonth_Total_Minutes,1)
+#print(Total_Exercise_Minutes_CurrentMonth_Total_Minutes)
+#print(Total_Exercise_Minutes_PriorMonth_Total_Minutes)
+#print(More_Minutes_Exercised_CurrentMonth)
+
+Exercise_Minutes_Output = {'Type' : ['Total_Exercise_Minutes_CurrentMonth_Total_Minutes', 'Total_Exercise_Minutes_PriorMonth_Total_Minutes', 'More_Minutes_Exercised_CurrentMonth'],
+        'Values' : [Total_Exercise_Minutes_CurrentMonth_Total_Minutes, Total_Exercise_Minutes_PriorMonth_Total_Minutes, More_Minutes_Exercised_CurrentMonth]}
+
+Exercise_Minutes_Output_DF = pd.DataFrame(Exercise_Minutes_Output, columns = ['Type','Values'])
+Exercise_Minutes_Output_DF_2 = pd.DataFrame({'Total_Exercise_Minutes_CurrentMonth_Total_Minutes' : [Total_Exercise_Minutes_CurrentMonth_Total_Minutes],
+                                            'Total_Exercise_Minutes_PriorMonth_Total_Minutes' : [Total_Exercise_Minutes_PriorMonth_Total_Minutes],
+                                            'More_Minutes_Exercised_CurrentMonth' : [More_Minutes_Exercised_CurrentMonth]})
+
+#print(Exercise_Minutes_Output_DF)
+#print(Exercise_Minutes_Output_DF_2)
+
+Exercise_Minutes_Output_DF_2.to_csv(directory_mfp + "\Exercise_Minutes_Output_DF.txt", index=False)
+
+#
