@@ -1,0 +1,35 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Apr 26 11:43:03 2020
+
+@author: Ed
+"""
+
+import numpy as np
+import pandas as pd
+from datetime import date
+import datetime as dt
+import zipfile
+directory_covid_data = 'C:/Users/edwar/Downloads/Covid'
+
+df_data = pd.read_csv('https://query.data.world/s/z3dz46rkwlz5673oygh4vb73ff6cf7')
+# df_data = pd.read_csv(directory_covid_data + "/data_canada.txt")
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+#print(df_data)
+print(df_data.head(5))
+# filter for Canada
+
+df_data_canada = df_data.loc[df_data['iso3'] == 'CAN']
+
+
+#df.loc[df['column_name'] == some_value]
+
+
+
+# df_data_canada_Cases = df_data_canada[['Cases']]
+# print(df_data_canada_Cases.head(10))
+
+
+df_data_canada.to_csv(directory_covid_data + "/data_canada.txt", index = False)
